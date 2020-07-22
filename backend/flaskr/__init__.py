@@ -102,48 +102,51 @@ def create_app(test_config=None):
     except(): 
       abort(422)
 
+  @app.route('/questions/search', methods=['POST'])
+  def search_question():
+    body = request.get_json()
+    search = body.get('searchTerm', None)
+    
+    selection = Question.query.order_by(Question.id).filter(Question.question.ilike(f'%{search}%')).all()
+    
+    if (len(selection) == 0):
+      abort(404)
+      
+    current_questions = paginate_questions(request, selection)
+    
+    return jsonify({
+      'success': True, 
+      'questions': current_questions, 
+      'total_questions': len(Question.query.all())
+    })
+
   @app.route('/questions', methods=['POST'])
   def create_question(): 
     body = request.get_json()
-    if (body.get('searchTerm')): 
-      search = body.get('searchTerm', None)
+    
+    new_question = body.get('question', None)
+    new_answer = body.get('answer', None)
+    category = body.get('category', None)
+    difficulty_score = body.get('difficulty', None)
+    
+    if ((new_question is None) or (new_answer is None) or (difficulty_score is None) or (category is None)):
+      abort(422)
       
-      selection = Question.query.order_by(Question.id).filter(Question.question.ilike(f'%{search}%')).all()
-      
-      if (len(selection) == 0):
-        abort(404)
+    try: 
+      question = Question(question=new_question, answer=new_answer, category=category, difficulty=difficulty_score)
+      question.insert()
+      selection = Question.query.order_by(Question.id).all()
+      current_questions = paginate_questions(request, selection)   
         
-      current_questions = paginate_questions(request, selection)
-      
       return jsonify({
-        'success': True, 
-        'questions': current_questions, 
-        'total_questions': len(Question.query.all())
-      })
-    else:
-      new_question = body.get('question', None)
-      new_answer = body.get('answer', None)
-      category = body.get('category', None)
-      difficulty_score = body.get('difficulty', None)
-      
-      if ((new_question is None) or (new_answer is None) or (difficulty_score is None) or (category is None)):
-        abort(422)
-        
-      try: 
-        question = Question(question=new_question, answer=new_answer, category=category, difficulty=difficulty_score)
-        question.insert()
-        selection = Question.query.order_by(Question.id).all()
-        current_questions = paginate_questions(request, selection)   
-          
-        return jsonify({
-            'success': True, 
-            'created': question.id, 
-            'question_created': question.question,
-            'questions': current_questions, 
-            'total_questions': len(Question.query.all())
-          })
-      except(): 
-        abort(422) 
+          'success': True, 
+          'created': question.id, 
+          'question_created': question.question,
+          'questions': current_questions, 
+          'total_questions': len(Question.query.all())
+        })
+    except(): 
+      abort(422) 
 
   @app.route('/quizzes', methods=['POST'])
   def get_quiz():
