@@ -150,30 +150,30 @@ def create_app(test_config=None):
         
     if request.data:
           
-      search_key = json.loads(request.data.decode('utf-8'))
+      search = json.loads(request.data)
       
-      if (('quiz_category' in search_key and 'id' in search_key['quiz_category']) and 'previous_questions' in search_key):
+      if (('quiz_category' in search and 'id' in search['quiz_category']) and 'previous_questions' in search):
         
-        questions_query = []
+        questions_list = []
               
-        if (search_key['quiz_category']['id'] == 0):
-          questions_query = Question.query.all()
+        if (search['quiz_category']['id'] == 0):
+          questions_list = Question.query.all()
         else:
-          questions_query = Question.query.filter_by(category=search_key['quiz_category']['id']).filter(Question.id.notin_(search_key["previous_questions"])).all()
+          questions_list = Question.query.filter_by(category=search['quiz_category']['id']).filter(Question.id.notin_(search["previous_questions"])).all()
               
-        length_of_available_question = len(questions_query)
+        question_list_length = len(questions_list)
         
-        if length_of_available_question > 0:
-          result = {
+        if question_list_length > 0:
+          question = {
             "success": True,
-            "question": Question.format(questions_query[random.randrange(0, length_of_available_question)])
+            "question": Question.format(questions_list[random.randrange(0, question_list_length)])
             }
         else:
-          result = {
+          question = {
             "success": True,
             "question": None
           }
-        return jsonify(result)
+        return jsonify(question)
       else: 
         abort(404)
     else:
